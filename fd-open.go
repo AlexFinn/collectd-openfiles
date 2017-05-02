@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"regexp"
 	"strconv"
 	"syscall"
+	"time"
+
+	"collectd.org/api"
+	"collectd.org/exec"
 )
 
 // check for errors and bail out if one is hit
@@ -62,6 +66,13 @@ func countOpenFiles(dirs []string) int {
 	return openFiles
 }
 
+func countPercent(opened int) float64 {
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	check(err)
+	return float64(opened) * 100 / float64(rLimit.Max)
+}
+
 // get a list of dirs in /proc corresponding to process ids
 // recurse through each and calculate number of open files
 // print the result
@@ -70,6 +81,16 @@ func main() {
 	flag.Parse()
 	dirs := listProcs(username)
 	openFiles := countOpenFiles(dirs)
-	fmt.Println("Total number of running processes is:", len(dirs))
-	fmt.Println("Total number of open files is:", openFiles)
+	percent := countPercent(openFiles)
+	vl := api.ValueList{
+		Identifier: api.Identifier{
+			Host:   exec.Hostname(),
+			Plugin: "system",
+			Type:   "openfiles",
+		},
+		Time:     time.Now(),
+		Interval: exec.Interval(),
+		Values:   []api.Value{api.Gauge(percent)},
+	}
+	exec.Putval.Write(context.Background(), &vl)
 }

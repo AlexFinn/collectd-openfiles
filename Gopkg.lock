@@ -1,7 +1,0 @@
-memo = "9dd3347a926938b2f4fbc4adad8ba42dc3403324860767ce863d70ee8db36b56"
-
-[[projects]]
-  branch = "master"
-  name = "collectd.org"
-  packages = ["api","cdtime","exec","format"]
-  revision = "bf0e31aeedfea7fb13f821e0831cfe2b5974d1e9"
